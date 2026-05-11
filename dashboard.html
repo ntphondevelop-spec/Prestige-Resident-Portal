@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริการลูกบ้าน - Pak Phanang Prestige Hall</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=Audiowide&display=swap" rel="stylesheet">
+    
+    <script>
+        // 🔒 ตรวจสอบ Session ลูกบ้าน
+        (function() {
+            try {
+                const sessionStr = localStorage.getItem('tenant_user_data');
+                if (!sessionStr) { window.location.href = 'index.html'; return; }
+                const data = JSON.parse(sessionStr);
+                if (new Date().getTime() > (data.loggedInAt + data.expiresIn)) {
+                    localStorage.removeItem('tenant_user_data');
+                    window.location.href = 'index.html';
+                }
+            } catch(e) { window.location.href = 'index.html'; }
+        })();
+    </script>
+
+    <style>
+        :root {
+            --font-ui: 'Anuphan', sans-serif;
+            --font-logo: 'Audiowide', cursive;
+            --navy-primary: #0F172A; 
+            --blue-accent: #2563EB; 
+            --bg-light: #F8FAFC;
+            --bg-white: #FFFFFF;
+            --text-main: #1E293B;
+            --text-gray: #64748B;
+            --border-color: #E2E8F0;
+            --alert-red: #EF4444;
+            --success-green: #10B981;
+            --warning-yellow: #F59E0B;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-ui); background-color: var(--bg-light); color: var(--text-main); -webkit-font-smoothing: antialiased; line-height: 1.6; }
+
+        /* ================= TOP NAVBAR ================= */
+        .top-navbar {
+            background: var(--bg-white); padding: 0 30px; height: 80px;
+            display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-bottom: 1px solid var(--border-color);
+        }
+        .brand { font-family: var(--font-logo); font-size: 1.5rem; line-height: 1.1; letter-spacing: 1px; color: var(--navy-primary); }
+        .brand span { font-family: var(--font-ui); display: block; font-size: 0.85rem; color: var(--blue-accent); font-weight: 800; letter-spacing: 0; }
+        
+        .nav-right { display: flex; align-items: center; gap: 25px; }
+        .user-status { text-align: right; border-right: 2px solid var(--border-color); padding-right: 20px; }
+        .user-status .name { font-weight: 800; font-size: 1.05rem; color: var(--navy-primary); }
+        .user-status .room { font-size: 0.85rem; color: var(--blue-accent); font-weight: 800; text-transform: uppercase; background: #EFF6FF; padding: 2px 10px; border-radius: 20px; display: inline-block; margin-top: 4px;}
+        
+        .btn-logout { 
+            background: #FEF2F2; color: var(--alert-red); border: none;
+            padding: 10px 18px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.95rem;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s; font-family: var(--font-ui);
+        }
+        .btn-logout:hover { background: var(--alert-red); color: #FFF; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(239,68,68,0.2); }
+
+        /* ================= MAIN LAYOUT ================= */
+        .main-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        .section-card { background: var(--bg-white); border-radius: 24px; padding: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); border: 1px solid var(--border-color); margin-bottom: 30px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-left: 5px solid var(--blue-accent); padding-left: 15px; }
+        .section-header h2 { font-size: 1.5rem; font-weight: 800; color: var(--navy-primary); }
+
+        /* 1. ANNOUNCEMENTS */
+        .announce-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .ann-box { background: #F8FAFC; border: 1px solid var(--border-color); padding: 20px; border-radius: 18px; transition: 0.3s; }
+        .ann-box.high { border-left: 5px solid var(--alert-red); background: #FFF5F5; }
+        .ann-box:hover { transform: translateY(-5px); border-color: var(--blue-accent); box-shadow: 0 10px 20px rgba(37,99,235,0.05); }
+        .ann-tag { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; margin-bottom: 10px; }
+        .tag-normal { background: #E0E7FF; color: var(--blue-accent); }
+        .tag-high { background: #FEE2E2; color: var(--alert-red); }
+
+        /* 2. PERSONAL INFO */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .info-item { background: #F8FAFC; padding: 18px 20px; border-radius: 15px; border: 1px solid var(--border-color); }
+        .info-item label { display: block; font-size: 0.85rem; color: var(--text-gray); font-weight: 700; margin-bottom: 5px; }
+        .info-item span { font-size: 1.15rem; font-weight: 800; color: var(--navy-primary); }
+
+        /* 3. FINANCE & BILLS */
+        .finance-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; }
+        .due-card { 
+            background: linear-gradient(135deg, #0F172A 0%, #2563EB 100%); color: #FFF; 
+            padding: 40px; border-radius: 25px; text-align: center; position: relative; overflow: hidden;
+            box-shadow: 0 15px 30px rgba(37,99,235,0.2);
+        }
+        .due-card h3 { font-size: 1.1rem; opacity: 0.9; font-weight: 600; margin-bottom: 10px; }
+        .due-card .amount { font-size: 4rem; font-weight: 800; margin-bottom: 15px; letter-spacing: -1px; }
+        .status-pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); padding: 8px 20px; border-radius: 50px; font-weight: 700; backdrop-filter: blur(10px); }
+
+        .payment-area { margin-top: 25px; background: #F8FAFC; border: 2px dashed var(--blue-accent); border-radius: 20px; padding: 30px; text-align: center; }
+        .qr-code { max-width: 220px; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        .btn-action { width: 100%; padding: 16px; border-radius: 14px; border: none; font-family: var(--font-ui); font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .btn-dl { background: #FFF; color: var(--navy-primary); border: 1.5px solid var(--border-color); text-decoration: none;}
+        .btn-dl:hover { background: #F1F5F9; border-color: var(--blue-accent); color: var(--blue-accent); }
+        .btn-pay { background: var(--navy-primary); color: #FFF; box-shadow: 0 10px 20px rgba(15,23,42,0.15); }
+        .btn-pay:hover { background: var(--blue-accent); transform: translateY(-3px); }
+        .btn-pay:disabled { background: var(--text-gray); cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .file-input-wrapper { position: relative; margin-bottom: 15px; }
+        .file-input-wrapper input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .file-custom-btn { background: #EFF6FF; border: 2px solid var(--blue-accent); color: var(--blue-accent); padding: 16px; border-radius: 14px; font-weight: 800; font-size: 1.05rem; transition: 0.2s;}
+        .file-input-wrapper:hover .file-custom-btn { background: #DBEAFE; }
+
+        .history-table-wrap { overflow-x: auto; background: #FFF; border: 1px solid var(--border-color); border-radius: 16px;}
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { text-align: left; padding: 16px; background: #F8FAFC; color: var(--navy-primary); font-size: 0.95rem; font-weight: 800; border-bottom: 2px solid var(--border-color); }
+        td { padding: 18px 16px; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 1rem;}
+        .badge { padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; }
+        .bg-paid { background: #ECFDF5; color: var(--success-green); }
+        .bg-pending { background: #FFFBEB; color: var(--warning-yellow); }
+        .bg-unpaid { background: #FEF2F2; color: var(--alert-red); }
+
+        /* 4. MAINTENANCE */
+        .maint-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .form-control { width: 100%; padding: 18px; background: #F8FAFC; border: 1.5px solid var(--border-color); border-radius: 14px; font-family: var(--font-ui); font-size: 1.05rem; outline: none; transition: 0.2s; margin-bottom: 15px; color: var(--navy-primary); font-weight: 500;}
+        .form-control:focus { border-color: var(--blue-accent); background: #FFF; box-shadow: 0 0 0 4px rgba(37,99,235,0.05); }
+
+        /* MODALS */
+        .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); backdrop-filter: blur(8px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .modal.show { display: flex; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-box { background: #FFF; padding: 40px; border-radius: 24px; width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25);}
+        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; color: var(--text-gray); transition: 0.2s; }
+        .modal-close:hover { color: var(--alert-red); transform: scale(1.1); }
+
+        /* TOAST */
+        #smart-toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: #FFF; padding: 16px 30px; border-radius: 50px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); z-index: 10000; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-weight: 700; font-size: 1rem; border: 1.5px solid var(--border-color); display: flex; align-items: center; gap: 12px; color: var(--navy-primary);}
+        #smart-toast.show { top: 30px; }
+
+        @media (max-width: 900px) {
+            .top-navbar { padding: 0 20px; height: 70px; }
+            .user-status { display: none; }
+            .finance-layout, .maint-layout { grid-template-columns: 1fr; }
+            .due-card .amount { font-size: 3.2rem; }
+            .section-card { padding: 25px 20px; }
+            .btn-logout span { display: none; }
+            .btn-logout { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="smart-toast"><span id="toast-icon"></span><span id="toast-msg"></span></div>
+
+    <div class="modal" id="modal-announce">
+        <div class="modal-box">
+            <div class="modal-close" onclick="closeModal('modal-announce')">
+                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            <h2 style="margin-bottom: 25px; color: var(--navy-primary); font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 15px;">ประกาศทั้งหมด</h2>
+            <div id="full-ann-list"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="confirm-modal">
+        <div class="modal-box" style="max-width: 400px; text-align: center; padding: 40px 30px;">
+            <svg viewBox="0 0 24 24" width="60" height="60" stroke="var(--alert-red)" stroke-width="1.5" fill="none" style="margin-bottom: 15px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <h3 style="color:var(--navy-primary); font-size: 1.4rem; margin-bottom:10px;">ยืนยันออกจากระบบ</h3>
+            <p style="color:var(--text-gray); font-size:1rem; margin-bottom:30px;">คุณต้องการออกจากระบบบริการลูกบ้านใช่หรือไม่?</p>
+            <div style="display:flex; gap:15px;">
+                <button class="btn-action btn-dl" style="flex:1; margin:0;" onclick="closeModal('confirm-modal')">ยกเลิก</button>
+                <button class="btn-action btn-pay" style="flex:1; background:var(--alert-red); margin:0;" onclick="logout()">ออกจากระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="top-navbar">
+        <div class="brand">PRESTIGE<span>HALL PORTAL</span></div>
+        <div class="nav-right">
+            <div class="user-status">
+                <div class="name" id="nav-name">กำลังโหลด...</div>
+                <div class="room" id="nav-room">ROOM --</div>
+            </div>
+            <button class="btn-logout" onclick="document.getElementById('confirm-modal').classList.add('show')">
+                <span>ออกจากระบบ</span>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+
+        <div class="section-card">
+            <div class="section-header">
+                <h2>ข่าวสาร & ประกาศ</h2>
+                <button class="btn-dl" id="btn-view-all-ann" style="display:none; padding:8px 20px; border-radius:10px; font-weight:700; cursor:pointer;" onclick="openAnnounceModal()">ดูทั้งหมด</button>
+            </div>
+            <div class="announce-grid" id="announce-list-display">
+                <p style="color:var(--text-gray);">ไม่มีประกาศในขณะนี้</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header"><h2>ข้อมูลผู้เช่า (สัญญาเช่า 100%)</h2></div>
+            <div class="info-grid" id="personal-info-grid">
+                <div class="info-item"><label>ชื่อ-นามสกุล</label><span id="p-name">-</span></div>
+                <div class="info-item"><label>เบอร์โทรศัพท์</label><span id="p-phone">-</span></div>
+                <div class="info-item"><label>เลขบัตรประชาชน</label><span id="p-cid">-</span></div>
+                <div class="info-item"><label>หมายเลขห้องพัก</label><span id="p-room">-</span></div>
+                <div class="info-item"><label>อัตราค่าเช่า (บาท/เดือน)</label><span id="p-rent">-</span></div>
+                <div class="info-item"><label>เริ่มต้นสัญญาเมื่อ</label><span id="p-date">-</span></div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header"><h2>สถานะทางการเงิน & ชำระบิล</h2></div>
+            <div class="finance-layout">
+                
+                <div>
+                    <div class="due-card">
+                        <h3>ยอดเงินที่ต้องชำระรอบนี้</h3>
+                        <div class="amount" id="display-due-amt">฿0.00</div>
+                        <div class="status-pill" id="display-due-status">กำลังตรวจสอบ...</div>
+                    </div>
+
+                    <div id="pay-action-panel" style="display: none;">
+                        <div class="payment-area">
+                            <p style="font-weight:800; margin-bottom:15px; color:var(--navy-primary); font-size:1.1rem;">สแกนจ่ายผ่าน Mobile Banking</p>
+                            <img id="qr-img" src="" class="qr-code" alt="Payment QR">
+                            
+                            <a id="qr-dl-link" href="#" download="Payment_QR.png" class="btn-action btn-dl">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                บันทึกรูป QR Code
+                            </a>
+
+                            <div style="background:#FFF; padding:20px; border-radius:15px; border:1px solid var(--border-color);">
+                                <div style="font-size:0.85rem; color:var(--text-gray); font-weight:700;">พร้อมเพย์ / PromptPay</div>
+                                <div id="pp-num" style="font-size:1.5rem; font-weight:800; color:var(--navy-primary); margin: 5px 0;">000-000-0000</div>
+                                <div id="pp-name" style="font-weight:700; color:var(--blue-accent);">-</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:25px;">
+                            <div class="file-input-wrapper">
+                                <div class="file-custom-btn" id="upload-btn-text">
+                                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    คลิกเพื่อแนบสลิปโอนเงิน
+                                </div>
+                                <input type="file" id="slip-file" accept="image/*">
+                            </div>
+                            <div id="preview-wrap" style="display:none; margin-bottom:15px;">
+                                <img id="slip-preview" style="width:100%; border-radius:16px; cursor:zoom-in; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05);" title="คลิกเพื่อขยายดูเต็มจอ">
+                            </div>
+                            <button class="btn-action btn-pay" id="btn-submit-slip" disabled>ยืนยันและให้ AI ตรวจสอบสลิป</button>
+                        </div>
+                    </div>
+                    
+                    <div id="pay-success-panel" style="display:none; text-align:center; padding:50px 20px;">
+                        <svg viewBox="0 0 24 24" width="90" height="90" stroke="var(--success-green)" stroke-width="1.5" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <h3 style="margin-top:20px; color:var(--navy-primary); font-size:1.5rem; font-weight:800;">ยอดเยี่ยมมาก!</h3>
+                        <p style="color:var(--text-gray); font-size:1.05rem;">คุณไม่มีรายการค้างชำระในขณะนี้</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-weight:800; margin-bottom:20px; color:var(--navy-primary); font-size:1.2rem;">ประวัติการชำระเงินทั้งหมด</h3>
+                    <div class="history-table-wrap">
+                        <table id="history-table">
+                            <thead><tr><th>งวดเดือน</th><th>ยอดชำระ</th><th>วันที่</th><th>สถานะ</th></tr></thead>
+                            <tbody id="history-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header"><h2>ระบบแจ้งซ่อมแซม</h2></div>
+            <div class="maint-layout">
+                <div>
+                    <form id="maint-form">
+                        <label style="font-weight:800; display:block; margin-bottom:10px; color:var(--navy-primary); font-size:1.1rem;">ระบุรายละเอียดปัญหาที่พบ</label>
+                        <textarea class="form-control" id="m-desc" placeholder="เช่น แอร์ไม่เย็น, ท่อน้ำตัน, ไฟระเบียงขาด..." required style="height:160px;"></textarea>
+                        <button type="submit" class="btn-action btn-pay" id="btn-m-submit">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            ส่งเรื่องให้แอดมิน
+                        </button>
+                    </form>
+                </div>
+                <div>
+                    <h3 style="font-weight:800; margin-bottom:20px; color:var(--navy-primary); font-size:1.2rem;">รายการแจ้งซ่อมย้อนหลัง</h3>
+                    <div class="history-table-wrap">
+                        <table>
+                            <thead><tr><th>ปัญหาที่แจ้ง</th><th>วันที่</th><th>สถานะ</th></tr></thead>
+                            <tbody id="maint-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION (API KEYS)
+        // ==========================================
+        const CONFIG = {
+            SB_URL: 'https://vnlqxtxifgchrouongpu.supabase.co/rest/v1',
+            SB_KEY: 'sb_publishable_jBw7w_gyrLx7B0oSHAtWOw_nVTHTzxl',
+            STORAGE_URL: 'https://vnlqxtxifgchrouongpu.supabase.co/storage/v1/object/payment_slips',
+            PUBLIC_STORAGE: 'https://vnlqxtxifgchrouongpu.supabase.co/storage/v1/object/public/payment_slips',
+            ES_KEY: 'e3952feb-2822-4ad7-a5b0-b451102002b1' // EasySlip API Key
+        };
+
+        let tenant = null;
+        let unpaidBill = null;
+        let selectedFile = null;      // ไฟล์ที่ถูกย่อขนาดแล้ว
+        let allAnnouncements = [];
+
+        // ==========================================
+        // UI UTILS
+        // ==========================================
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('smart-toast');
+            const icon = document.getElementById('toast-icon');
+            t.style.borderColor = (type === 'success') ? 'var(--success-green)' : 'var(--alert-red)';
+            icon.innerHTML = (type === 'success') 
+                ? `<svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--success-green)" stroke-width="2.5" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>` 
+                : `<svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--alert-red)" stroke-width="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+        function logout() { localStorage.removeItem('tenant_user_data'); window.location.href = 'index.html'; }
+
+        function formatDate(ds) {
+            if(!ds) return '-'; const d = new Date(ds);
+            return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()+543}`;
+        }
+        function formatMonth(ym) {
+            if(!ym || ym === 'INITIAL') return 'ยอดยกมา/แรกเข้า';
+            const [y, m] = ym.split('-');
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return `${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+        }
+
+        // ==========================================
+        // CORE LOGIC: DATA FETCHING
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            tenant = JSON.parse(localStorage.getItem('tenant_user_data'));
+            document.getElementById('nav-room').innerText = `Room ${tenant.room_number}`;
+            await loadAll();
+        });
+
+        async function loadAll() {
+            try {
+                const headers = { 'apikey': CONFIG.SB_KEY, 'Authorization': `Bearer ${CONFIG.SB_KEY}` };
+                const [cfgR, tR, bR, mR, aR] = await Promise.all([
+                    fetch(`${CONFIG.SB_URL}/dorm_configs?id=eq.main_config`, { headers }),
+                    fetch(`${CONFIG.SB_URL}/dorm_tenants?id=eq.${tenant.id}`, { headers }),
+                    fetch(`${CONFIG.SB_URL}/billing_statements?room_number=eq.${tenant.room_number}&order=created_at.desc`, { headers }),
+                    fetch(`${CONFIG.SB_URL}/maintenance_requests?room_number=eq.${tenant.room_number}&order=created_at.desc`, { headers }),
+                    fetch(`${CONFIG.SB_URL}/announcements?is_active=eq.true&order=created_at.desc`, { headers })
+                ]);
+
+                const config = (await cfgR.json())[0] || {};
+                const tFull = (await tR.json())[0] || {};
+                const bills = await bR.json();
+                const maints = await mR.json();
+                allAnnouncements = await aR.json();
+
+                renderAnnounce();
+                renderPersonal(tFull);
+                renderFinance(config, parseFloat(tFull.initial_debt || 0), bills);
+                renderMaint(maints);
+
+            } catch(e) { showToast("โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ", "error"); }
+        }
+
+        // ==========================================
+        // RENDERERS
+        // ==========================================
+        function renderAnnounce() {
+            const container = document.getElementById('announce-list-display');
+            if(allAnnouncements.length === 0) return;
+            
+            const show = allAnnouncements.slice(0, 3);
+            container.innerHTML = show.map(a => `
+                <div class="ann-box ${a.priority==='HIGH'?'high':''}">
+                    <span class="ann-tag ${a.priority==='HIGH'?'tag-high':'tag-normal'}">${a.priority==='HIGH'?'ด่วนพิเศษ':'ประกาศทั่วไป'}</span>
+                    <div style="font-weight:800; font-size:1.15rem; color:var(--navy-primary); margin-bottom:5px;">${a.title}</div>
+                    <div style="font-size:0.85rem; color:var(--text-gray); margin-bottom:12px;">เมื่อ: ${formatDate(a.created_at)}</div>
+                    <div style="font-size:1rem; color:var(--text-main); white-space:pre-wrap; line-height:1.6;">${a.content}</div>
+                </div>
+            `).join('');
+
+            if(allAnnouncements.length > 3) document.getElementById('btn-view-all-ann').style.display = 'block';
+        }
+
+        function openAnnounceModal() {
+            const list = document.getElementById('full-ann-list');
+            list.innerHTML = allAnnouncements.map(a => `
+                <div style="padding:20px; border-bottom:1px solid var(--border-color); ${a.priority==='HIGH'?'background:#FFF5F5; border-left:4px solid var(--alert-red);':''}">
+                    <div style="font-weight:800; font-size:1.2rem; color:var(--navy-primary); margin-bottom:5px;">${a.title}</div>
+                    <div style="font-size:0.85rem; color:var(--text-gray); margin-bottom:12px;">${formatDate(a.created_at)}</div>
+                    <div style="font-size:1rem; line-height:1.6; white-space:pre-wrap;">${a.content}</div>
+                </div>
+            `).join('');
+            document.getElementById('modal-announce').classList.add('show');
+        }
+
+        function renderPersonal(t) {
+            document.getElementById('nav-name').innerText = t.full_name;
+            document.getElementById('p-name').innerText = t.full_name;
+            document.getElementById('p-phone').innerText = t.phone_number;
+            document.getElementById('p-cid').innerText = t.citizen_id;
+            document.getElementById('p-room').innerText = t.room_number;
+            document.getElementById('p-rent').innerText = parseFloat(t.monthly_rent).toLocaleString();
+            document.getElementById('p-date').innerText = formatDate(t.payment_date);
+        }
+
+        function renderFinance(config, debt, bills) {
+            const pending = bills.find(b => b.payment_status === 'PENDING_VERIFICATION');
+            const unpaid = bills.find(b => b.payment_status === 'UNPAID');
+            
+            const dueAmtEl = document.getElementById('display-due-amt');
+            const dueStatusEl = document.getElementById('display-due-status');
+            const panel = document.getElementById('pay-action-panel');
+            const success = document.getElementById('pay-success-panel');
+
+            let total = 0;
+            if(pending) {
+                dueAmtEl.innerText = `฿${parseFloat(pending.amount_due).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                dueStatusEl.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> กำลังรอแอดมินตรวจสอบสลิป`;
+                dueStatusEl.style.background = 'rgba(245, 158, 11, 0.9)';
+                panel.style.display = 'none'; success.style.display = 'none';
+            } else if(unpaid || debt > 0) {
+                total = unpaid ? parseFloat(unpaid.amount_due) : debt;
+                unpaidBill = unpaid ? {id: unpaid.id, type:'MONTHLY'} : {type:'INITIAL'};
+                
+                dueAmtEl.innerText = `฿${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                dueStatusEl.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ค้างชำระ: ${unpaid ? 'ค่าเช่าเดือน '+formatMonth(unpaid.billing_month) : 'ยอดยกมา'}`;
+                dueStatusEl.style.background = 'rgba(239, 68, 68, 0.9)';
+                
+                // Generate QR Code
+                const pp = config.promptpay_number ? config.promptpay_number.replace(/-/g, '') : '';
+                if(pp) {
+                    const qrUrl = `https://promptpay.io/${pp}/${total}.png`;
+                    document.getElementById('qr-img').src = qrUrl;
+                    document.getElementById('qr-dl-link').href = qrUrl;
+                    document.getElementById('pp-num').innerText = config.promptpay_number;
+                    document.getElementById('pp-name').innerText = config.promptpay_name;
+                }
+
+                panel.style.display = 'block'; success.style.display = 'none';
+            } else {
+                dueAmtEl.innerText = "฿0.00";
+                dueStatusEl.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ชำระครบถ้วนแล้ว`;
+                dueStatusEl.style.background = 'rgba(16, 185, 129, 0.9)';
+                panel.style.display = 'none'; success.style.display = 'block';
+            }
+
+            // History Table
+            document.getElementById('history-body').innerHTML = bills.map(b => `
+                <tr>
+                    <td>${formatMonth(b.billing_month)}</td>
+                    <td style="color:var(--navy-primary); font-weight:800;">฿${parseFloat(b.amount_due).toLocaleString()}</td>
+                    <td style="color:var(--text-gray); font-size:0.9rem;">${formatDate(b.paid_at || b.created_at)}</td>
+                    <td><span class="badge ${b.payment_status==='PAID'?'bg-paid':b.payment_status==='UNPAID'?'bg-unpaid':'bg-pending'}">${b.payment_status==='PAID'?'สำเร็จ':b.payment_status==='UNPAID'?'ค้างชำระ':'รอตรวจสอบ'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderMaint(data) {
+            if(data.length === 0) {
+                document.getElementById('maint-body').innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-gray); padding:30px;">ไม่มีประวัติการแจ้งซ่อม</td></tr>`; return;
+            }
+            document.getElementById('maint-body').innerHTML = data.map(m => `
+                <tr>
+                    <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--navy-primary);">${m.issue_description}</td>
+                    <td style="color:var(--text-gray); font-size:0.9rem;">${formatDate(m.created_at)}</td>
+                    <td><span class="badge ${m.status==='COMPLETED'?'bg-paid':m.status==='IN_PROGRESS'?'bg-pending':'bg-unpaid'}">${m.status==='COMPLETED'?'เสร็จสิ้น':m.status==='IN_PROGRESS'?'กำลังซ่อม':'รอช่าง'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // ==========================================
+        // 📸 IMAGE COMPRESSION & POPUP
+        // ==========================================
+        async function compressImage(file, maxWidth = 1200, quality = 0.7) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if(w > maxWidth) { h = Math.round((h*maxWidth)/w); w = maxWidth; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(blob => resolve(new File([blob], "slip.jpg", {type:'image/jpeg'})), 'image/jpeg', quality);
+                    };
+                };
+            });
+        }
+
+        document.getElementById('slip-file').addEventListener('change', async function() {
+            if(this.files && this.files[0]) {
+                document.getElementById('upload-btn-text').innerText = "กำลังย่อขนาดไฟล์ให้เล็กลง...";
+                
+                // 1. ย่อขนาดไฟล์เตรียมไว้สำหรับโยนเข้าฐานข้อมูล
+                selectedFile = await compressImage(this.files[0]);
+                
+                // 2. แสดงรูปพรีวิวให้ลูกค้าดู
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('slip-preview').src = e.target.result;
+                    document.getElementById('preview-wrap').style.display = 'block';
+                }
+                reader.readAsDataURL(selectedFile);
+                
+                document.getElementById('upload-btn-text').innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> แนบสลิปเรียบร้อยแล้ว`;
+                document.getElementById('upload-btn-text').style.color = 'var(--success-green)';
+                document.getElementById('upload-btn-text').style.borderColor = 'var(--success-green)';
+                document.getElementById('btn-submit-slip').disabled = false;
+            }
+        });
+
+        // POPUP ขยายสลิป
+        document.getElementById('slip-preview').addEventListener('click', function() {
+            const overlay = document.createElement('div');
+            overlay.style = "position:fixed; inset:0; background:rgba(15,23,42,0.9); z-index:99999; display:flex; justify-content:center; align-items:center; cursor:zoom-out; animation:fadeIn 0.2s;";
+            const img = document.createElement('img');
+            img.src = this.src;
+            img.style = "max-width:95%; max-height:90vh; border-radius:16px; box-shadow:0 25px 50px rgba(0,0,0,0.5);";
+            overlay.appendChild(img);
+            document.body.appendChild(overlay);
+            overlay.onclick = () => document.body.removeChild(overlay);
+        });
+
+        // ==========================================
+        // 🤖 SLIP VERIFICATION (REAL-TIME FETCH) & UPLOAD
+        // ==========================================
+        document.getElementById('btn-submit-slip').addEventListener('click', async () => {
+            // เช็คว่าเลือกไฟล์และมีบิลค้างจ่ายหรือไม่
+            if(!unpaidBill) return;
+            const fileInput = document.getElementById('slip-file');
+            const rawOriginalFile = fileInput.files[0];
+            if(!rawOriginalFile) { showToast('กรุณาเลือกไฟล์สลิป', 'error'); return; }
+
+            const btn = document.getElementById('btn-submit-slip');
+            btn.disabled = true; 
+            btn.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> 🤖 กำลังประมวลผล...`;
+
+            try {
+                const dueAmt = parseFloat(document.getElementById('display-due-amt').innerText.replace('฿','').replace(/,/g,''));
+                let aiCheckPassed = true;
+                let esD = null; // เก็บข้อมูล JSON ที่ AI อ่านได้
+
+                // 🛡️ เช็คขนาดไฟล์ก่อน (ถ้าเกิน 4MB จะข้าม AI ไปให้แอดมินตรวจเอง)
+                if (rawOriginalFile.size > 4 * 1024 * 1024) {
+                    console.warn("ขนาดไฟล์ใหญ่เกินโควต้า EasySlip ข้ามการตรวจสอบ AI");
+                    aiCheckPassed = false;
+                } else {
+                    try {
+                        const fd = new FormData(); 
+                        fd.append('image', rawOriginalFile); 
+
+                        // ยิงไฟล์สลิปไปให้ EasySlip ตรวจ
+                        const esR = await fetch('https://api.easyslip.com/v2/verify/bank', {
+                            method: 'POST', 
+                            headers: { 'Authorization': `Bearer ${CONFIG.ES_KEY}` }, 
+                            body: fd
+                        });
+                        
+                        esD = await esR.json();
+
+                        if(!esD.success) throw new Error(esD.error?.message || "สลิปนี้อ่านไม่ได้ หรือไม่มี QR Code ค่ะ");
+                        if(esD.data.isDuplicate) throw new Error("สลิปนี้ซ้ำ! เคยใช้แจ้งชำระในระบบแล้วค่ะ");
+                        if(esD.data.rawSlip.amount.amount < dueAmt) throw new Error(`ยอดโอนไม่ครบ! (โอนมา ฿${esD.data.rawSlip.amount.amount} / ต้องจ่าย ฿${dueAmt})`);
+
+                    } catch (apiErr) {
+                        // ถ้าเกิดจาก API แจ้งว่าสลิปไม่ผ่านเงื่อนไข (ยอดเงิน/ปลอม)
+                        if(apiErr.message !== 'Failed to fetch' && apiErr.name !== 'TypeError') {
+                            // แจ้งเตือนลูกค้าและมีโอกาสให้ Bypass เพื่อส่งถึงแอดมิน
+                            const force = confirm(`⚠️ AI ตรวจพบปัญหา:\n"${apiErr.message}"\n\nยืนยันส่งข้อมูลให้แอดมินตรวจสอบหรือไม่?`);
+                            if (!force) {
+                                btn.disabled = false; btn.innerHTML = `ลองส่งสลิปใหม่อีกครั้ง`; return;
+                            }
+                            aiCheckPassed = false;
+                        } else {
+                            console.warn("เครือข่ายมีปัญหา ข้ามการตรวจสอบ AI");
+                            aiCheckPassed = false;
+                        }
+                    }
+                }
+
+                // 2. อัปโหลดไฟล์ที่ย่อขนาด (selectedFile) เข้า Supabase
+                btn.innerText = aiCheckPassed ? "✅ สลิปถูกต้อง! กำลังบันทึกข้อมูล..." : "⚠️ กำลังส่งสลิปให้แอดมินตรวจสอบ...";
+                
+                const fname = `room${tenant.room_number}_${Date.now()}.jpg`;
+                const upR = await fetch(`${CONFIG.STORAGE_URL}/${fname}`, {
+                    method: 'POST', 
+                    headers: { 'apikey':CONFIG.SB_KEY, 'Authorization':`Bearer ${CONFIG.SB_KEY}`, 'Content-Type':'image/jpeg', 'x-upsert':'true' }, 
+                    body: selectedFile
+                });
+                
+                if(!upR.ok) throw new Error("อัปโหลดรูปเข้าเซิร์ฟเวอร์ไม่สำเร็จ");
+
+                // 3. อัปเดตข้อมูลการชำระเงินและเก็บข้อมูล AI Metadata ให้แอดมินดู
+                const pubUrl = `${CONFIG.PUBLIC_STORAGE}/${fname}`;
+                const payload = { 
+                    payment_status: 'PENDING_VERIFICATION', 
+                    payment_method: 'TRANSFER', 
+                    slip_image_url: pubUrl 
+                };
+
+                // ถ้ามีข้อมูลที่ AI อ่านได้ ให้ส่งไปด้วย
+                if(esD && esD.success) {
+                    payload.ai_metadata = esD.data.rawSlip;
+                }
+                
+                if(unpaidBill.type === 'MONTHLY') {
+                    await fetch(`${CONFIG.SB_URL}/billing_statements?id=eq.${unpaidBill.id}`, {
+                        method: 'PATCH', headers: { 'Content-Type':'application/json', 'apikey':CONFIG.SB_KEY, 'Authorization':`Bearer ${CONFIG.SB_KEY}` },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    payload.room_number = tenant.room_number; payload.billing_month = 'INITIAL'; payload.amount_due = dueAmt;
+                    await fetch(`${CONFIG.SB_URL}/billing_statements`, {
+                        method: 'POST', headers: { 'Content-Type':'application/json', 'apikey':CONFIG.SB_KEY, 'Authorization':`Bearer ${CONFIG.SB_KEY}` },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                showToast("แจ้งชำระสำเร็จ! ข้อมูลถูกส่งไปให้แอดมินแล้วค่ะ", "success");
+                setTimeout(() => loadAll(), 2000);
+
+            } catch(e) { 
+                showToast(e.message, "error"); 
+                btn.disabled = false; 
+                btn.innerHTML = `ลองส่งสลิปใหม่อีกครั้ง`; 
+            }
+        });
+
+        // --- Maintenance Submit ---
+        document.getElementById('maint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-m-submit');
+            const desc = document.getElementById('m-desc').value.trim();
+            btn.disabled = true; btn.innerText = "กำลังส่งเรื่องให้แอดมิน...";
+
+            try {
+                await fetch(`${CONFIG.SB_URL}/maintenance_requests`, {
+                    method: 'POST', 
+                    headers: { 'Content-Type':'application/json', 'apikey':CONFIG.SB_KEY, 'Authorization':`Bearer ${CONFIG.SB_KEY}` },
+                    body: JSON.stringify({ room_number: tenant.room_number, issue_description: desc, status: 'PENDING' })
+                });
+                showToast("แจ้งเรื่องซ่อมเรียบร้อย แอดมินได้รับแล้วค่ะ", "success");
+                document.getElementById('maint-form').reset();
+                loadAll();
+            } catch(e) { showToast("ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่", "error"); }
+            finally { btn.disabled = false; btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> ส่งเรื่องแจ้งซ่อม`; }
+        });
+
+    </script>
+</body>
+</html>
